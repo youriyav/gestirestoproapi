@@ -8,8 +8,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * every table using that string is repointed at it via emplacement_id.
  * Tables with a null/empty "emplacement" are left with a null emplacement_id.
  */
-export class AddEmplacementIdToTablesAndBackfill1789750000001 implements MigrationInterface {
-  name = 'AddEmplacementIdToTablesAndBackfill1789750000001';
+export class AddEmplacementIdToTablesAndBackfill1789750000003 implements MigrationInterface {
+  name = 'AddEmplacementIdToTablesAndBackfill1789750000003';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

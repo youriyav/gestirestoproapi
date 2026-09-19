@@ -8,8 +8,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * reusing their phone number. Replaces it with a partial unique index scoped
  * to active rows.
  */
-export class MakeUsersPhoneUniquenessSoftDeleteAware1789750000001 implements MigrationInterface {
-  name = 'MakeUsersPhoneUniquenessSoftDeleteAware1789750000001';
+export class MakeUsersPhoneUniquenessSoftDeleteAware1789750000004 implements MigrationInterface {
+  name = 'MakeUsersPhoneUniquenessSoftDeleteAware1789750000004';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

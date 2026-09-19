@@ -7,8 +7,8 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  *   SELECT count(*) FROM tables WHERE emplacement IS NOT NULL AND emplacement <> '' AND emplacement_id IS NULL
  * must return 0 before this migration is applied to a database with real data.
  */
-export class DropEmplacementColumnFromTables1789750000002 implements MigrationInterface {
-  name = 'DropEmplacementColumnFromTables1789750000002';
+export class DropEmplacementColumnFromTables1789750000005 implements MigrationInterface {
+  name = 'DropEmplacementColumnFromTables1789750000005';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`

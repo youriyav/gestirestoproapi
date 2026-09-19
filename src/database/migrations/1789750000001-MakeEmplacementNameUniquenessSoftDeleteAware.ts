@@ -8,10 +8,10 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
  * TypeORM automatically scopes to deletedAt IS NULL) saw no conflict. Replaces
  * it with a partial unique index that only applies to active rows.
  */
-export class MakeEmplacementNameUniquenessSoftDeleteAware1789750000000
+export class MakeEmplacementNameUniquenessSoftDeleteAware1789750000001
   implements MigrationInterface
 {
-  name = 'MakeEmplacementNameUniquenessSoftDeleteAware1789750000000';
+  name = 'MakeEmplacementNameUniquenessSoftDeleteAware1789750000001';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
