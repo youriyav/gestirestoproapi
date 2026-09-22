@@ -70,6 +70,19 @@ export class TablesController {
     return { success: true, data: item };
   }
 
+  @Post(':id/clear-order')
+  @Roles(USER_ROLES.SUPER_ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVER, USER_ROLES.CASHIER)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: "Wipe a table's in-progress order and free the table" })
+  @ApiParam({ name: 'id', description: 'Table ID (UUID)' })
+  @ApiResponse({ status: 204, description: 'The order has been cleared and the table freed.' })
+  @ApiResponse({ status: 401, description: 'Unauthorized.' })
+  @ApiResponse({ status: 404, description: 'Table not found.' })
+  async clearOrder(@Param('id') id: string): Promise<void> {
+    await this.tablesService.clearOrder(id);
+  }
+
   @Patch(':id')
   @Roles(USER_ROLES.SUPER_ADMIN, USER_ROLES.OWNER)
   @ApiBearerAuth()

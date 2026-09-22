@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { DESIRED_PLAN } from '../entities/demo-request.entity';
 
 export class CreateDemoRequestDto {
@@ -14,13 +14,11 @@ export class CreateDemoRequestDto {
   contactName: string;
 
   @ApiProperty({
-    description: 'Central African phone number',
+    description: 'Contact phone number',
     example: '+236 70 12 34 56',
   })
   @IsNotEmpty()
-  @Matches(/^(\+?236)?\s?\d{2}(\s?\d{2}){3}$/, {
-    message: 'Le téléphone doit être un numéro centrafricain valide (ex: +236 70 12 34 56)',
-  })
+  @IsString()
   phone: string;
 
   @ApiPropertyOptional({ description: 'Contact email', example: 'contact@lebanguichic.cf' })

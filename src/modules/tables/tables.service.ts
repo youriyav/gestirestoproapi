@@ -112,9 +112,25 @@ export class TablesService extends TenantScopedBaseService<Table> {
 
     const result = new Map<string, AggregatedOrderLine[]>();
     for (const [tableId, lines] of byTable) {
-      result.set(tableId, Array.from(lines.values()));
+      // A line brought down to 0 (or below) by a decrease/remove delta no
+      // longer belongs to the order.
+      result.set(tableId, Array.from(lines.values()).filter((line) => line.quantity > 0));
     }
     return result;
+  }
+
+  /**
+   * Wipes a table's in-progress order and frees the table — a full reset,
+   * not a delta, so it gets its own endpoint rather than going through
+   * addOrderItem's event log. Hard delete: these are disposable working
+   * rows, not a financial record like Sale/Addition.
+   */
+  async clearOrder(tableId: string): Promise<void> {
+    const restaurantId = this.tenantContext.getRestaurantIdOrThrow();
+    await this.findOneScopedOrFail(tableId);
+
+    await this.orderItemRepository.delete({ restaurantId, tableId });
+    await this.tableRepository.update({ id: tableId, restaurantId }, { etat: TABLE_ETAT.LIBRE });
   }
 
   async findOne(id: string): Promise<Table> {

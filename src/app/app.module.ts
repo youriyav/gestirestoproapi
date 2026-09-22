@@ -35,6 +35,8 @@ import { SaleItem } from 'src/modules/sales/entities/sale-item.entity';
 import { AdditionsModule } from 'src/modules/additions/additions.module';
 import { Addition } from 'src/modules/additions/entities/addition.entity';
 import { AdditionItem } from 'src/modules/additions/entities/addition-item.entity';
+import { SettingsModule } from 'src/modules/settings/settings.module';
+import { AppSetting } from 'src/modules/settings/entities/app-setting.entity';
 import { TenantContextModule } from '@shared/tenant-context/tenant-context.module';
 import { TenantContextGuard } from '@shared/tenant-context/guards/tenant-context.guard';
 
@@ -95,6 +97,7 @@ import { TenantContextGuard } from '@shared/tenant-context/guards/tenant-context
             SaleItem,
             Addition,
             AdditionItem,
+            AppSetting,
           ],
           migrations: [__dirname + 'database/migration/**/*{.js,.ts}'],
           migrationsRun: false,
@@ -124,6 +127,7 @@ import { TenantContextGuard } from '@shared/tenant-context/guards/tenant-context
     EmplacementsModule,
     SalesModule,
     AdditionsModule,
+    SettingsModule,
   ],
   controllers: [AppController],
   providers: [

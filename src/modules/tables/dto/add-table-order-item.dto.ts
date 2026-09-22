@@ -22,8 +22,9 @@ export class AddTableOrderItemDto {
   @Min(0)
   unitPrice: number;
 
-  @ApiProperty({ description: 'Quantity added in this event', example: 2 })
+  // Negative deltas are legal (decrease/remove a line — see TablesService)
+  // in addition to positive ones (add/increase) — only 0 would be a no-op.
+  @ApiProperty({ description: 'Quantity delta for this event: positive to add/increase, negative to decrease/remove', example: 2 })
   @IsInt()
-  @Min(1)
   quantity: number;
 }

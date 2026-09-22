@@ -18,7 +18,7 @@ export class SalesController {
   constructor(private readonly salesService: SalesService) {}
 
   @Post()
-  @Roles(USER_ROLES.SUPER_ADMIN, USER_ROLES.OWNER, USER_ROLES.SERVER, USER_ROLES.CASHIER)
+  @Roles(USER_ROLES.SUPER_ADMIN, USER_ROLES.OWNER, USER_ROLES.CASHIER)
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Record a sale, printed at the cashier — idempotent by clientId' })
   @ApiResponse({ status: 201, description: 'The sale has been recorded (or already existed).' })
