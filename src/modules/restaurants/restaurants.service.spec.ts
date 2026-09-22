@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { RestaurantsService } from './restaurants.service';
 import { Restaurant, RESTAURANT_PLAN, RESTAURANT_STATUS } from './entities/restaurant.entity';
@@ -42,6 +42,64 @@ describe('RestaurantsService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('create', () => {
+    it('saves the restaurant with a client-supplied, available slug as-is', async () => {
+      restaurantRepository.findOne!.mockResolvedValue(null);
+      restaurantRepository.save!.mockImplementation((entity: unknown) => Promise.resolve(entity));
+
+      const result = await service.create({ name: 'Le Bangui Chic', slug: 'le-bangui-chic' } as never);
+
+      expect(result.slug).toBe('le-bangui-chic');
+    });
+
+    it('rejects a client-supplied slug that is already taken', async () => {
+      restaurantRepository.findOne!.mockResolvedValue({ id: 'existing', slug: 'le-bangui-chic' });
+
+      await expect(
+        service.create({ name: 'Le Bangui Chic', slug: 'le-bangui-chic' } as never),
+      ).rejects.toThrow(ConflictException);
+      expect(restaurantRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('rejects a client-supplied slug that is reserved', async () => {
+      await expect(service.create({ name: 'Admin Panel', slug: 'admin' } as never)).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(restaurantRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('auto-generates a slug from the name when none is supplied', async () => {
+      restaurantRepository.findOne!.mockResolvedValue(null);
+      restaurantRepository.save!.mockImplementation((entity: unknown) => Promise.resolve(entity));
+
+      const result = await service.create({ name: 'Le Bangui Chic' } as never);
+
+      expect(result.slug).toBe('le-bangui-chic');
+    });
+
+    it('disambiguates an auto-generated slug on collision with a numeric suffix', async () => {
+      restaurantRepository.findOne!
+        .mockResolvedValueOnce({ id: 'existing-1', slug: 'le-bangui-chic' })
+        .mockResolvedValueOnce({ id: 'existing-2', slug: 'le-bangui-chic-2' })
+        .mockResolvedValueOnce(null);
+      restaurantRepository.save!.mockImplementation((entity: unknown) => Promise.resolve(entity));
+
+      const result = await service.create({ name: 'Le Bangui Chic' } as never);
+
+      expect(result.slug).toBe('le-bangui-chic-3');
+    });
+
+    it('skips a reserved word when disambiguating an auto-generated slug', async () => {
+      // Name slugifies to exactly a reserved word ("api") — must skip straight to "-2".
+      restaurantRepository.findOne!.mockResolvedValue(null);
+      restaurantRepository.save!.mockImplementation((entity: unknown) => Promise.resolve(entity));
+
+      const result = await service.create({ name: 'API' } as never);
+
+      expect(result.slug).toBe('api-2');
+    });
+  });
+
   describe('update', () => {
     it('leaves plan untouched when it is not part of the update payload', async () => {
       const restaurant = {
@@ -57,6 +115,67 @@ describe('RestaurantsService', () => {
 
       expect(result.plan).toBe(RESTAURANT_PLAN.PRO);
       expect(result.mrr).toBe(25000);
+    });
+
+    it('rejects renaming the slug to one already taken by another restaurant', async () => {
+      const restaurant = { id: '1', slug: 'le-bangui-chic', status: RESTAURANT_STATUS.ACTIVE };
+      restaurantRepository.findOne!
+        .mockResolvedValueOnce(restaurant) // findEntityOrFail
+        .mockResolvedValueOnce({ id: '2', slug: 'le-bangui-chic-nouveau' }); // assertSlugAvailable
+
+      await expect(
+        service.update('1', { slug: 'le-bangui-chic-nouveau' } as never),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('rejects renaming the slug to a reserved word', async () => {
+      const restaurant = { id: '1', slug: 'le-bangui-chic', status: RESTAURANT_STATUS.ACTIVE };
+      restaurantRepository.findOne!.mockResolvedValueOnce(restaurant);
+
+      await expect(service.update('1', { slug: 'www' } as never)).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+  });
+
+  describe('findActiveBySlugOrNotFound', () => {
+    it('returns the restaurant when the slug exists and is active', async () => {
+      const restaurant = { id: '1', slug: 'le-bangui-chic', status: RESTAURANT_STATUS.ACTIVE };
+      restaurantRepository.findOne!.mockResolvedValue(restaurant);
+
+      await expect(service.findActiveBySlugOrNotFound('le-bangui-chic')).resolves.toBe(restaurant);
+    });
+
+    it('404s when the slug does not exist', async () => {
+      restaurantRepository.findOne!.mockResolvedValue(null);
+
+      await expect(service.findActiveBySlugOrNotFound('unknown')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('404s when the restaurant is still in trial', async () => {
+      restaurantRepository.findOne!.mockResolvedValue({
+        id: '1',
+        slug: 'le-bangui-chic',
+        status: RESTAURANT_STATUS.TRIAL,
+      });
+
+      await expect(service.findActiveBySlugOrNotFound('le-bangui-chic')).rejects.toThrow(
+        NotFoundException,
+      );
+    });
+
+    it('404s when the restaurant is suspended', async () => {
+      restaurantRepository.findOne!.mockResolvedValue({
+        id: '1',
+        slug: 'le-bangui-chic',
+        status: RESTAURANT_STATUS.SUSPENDED,
+      });
+
+      await expect(service.findActiveBySlugOrNotFound('le-bangui-chic')).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 

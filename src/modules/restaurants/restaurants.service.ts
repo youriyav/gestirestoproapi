@@ -1,10 +1,17 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { BaseService } from '@shared/services/base.service';
 import { MinioService } from '@modules/storage/minio.service';
 import { Restaurant, RESTAURANT_STATUS } from './entities/restaurant.entity';
 import {
+  RESERVED_SLUGS,
   RESTAURANT_LOGO_UPLOAD_PATH,
   RESTAURANT_PLAN_PRICE_MONTHLY,
 } from './restaurants.constants';
@@ -13,6 +20,15 @@ import { UpdateRestaurantDto } from './dto/update-restaurant.dto';
 import { QueryRestaurantsDto } from './dto/query-restaurants.dto';
 
 export type RestaurantWithMrr = Restaurant & { mrr: number };
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
 
 /**
  * Restaurant is the tenant root, not a tenant member — it has no restaurantId
@@ -79,28 +95,54 @@ export class RestaurantsService extends BaseService<Restaurant> {
   }
 
   async create(dto: CreateRestaurantDto): Promise<Restaurant> {
-    const existing = await this.restaurantRepository.findOne({ where: { slug: dto.slug } });
+    const slug = dto.slug
+      ? await this.assertSlugAvailable(dto.slug)
+      : await this.generateAvailableSlug(dto.name);
 
-    if (existing) {
-      throw new ConflictException(`Restaurant with slug ${dto.slug} already exists`);
-    }
-
-    return this.restaurantRepository.save(dto);
+    return this.restaurantRepository.save({ ...dto, slug });
   }
 
   async update(id: string, dto: UpdateRestaurantDto): Promise<RestaurantWithMrr> {
     const restaurant = await this.findEntityOrFail(id);
 
     if (dto.slug && dto.slug !== restaurant.slug) {
-      const clash = await this.restaurantRepository.findOne({ where: { slug: dto.slug } });
-      if (clash) {
-        throw new ConflictException(`Restaurant with slug ${dto.slug} already exists`);
-      }
+      await this.assertSlugAvailable(dto.slug);
     }
 
     Object.assign(restaurant, dto);
     const saved = await this.restaurantRepository.save(restaurant);
     return this.withMrr(saved);
+  }
+
+  /** Throws if `slug` is reserved or already taken by another (non-deleted) restaurant. */
+  private async assertSlugAvailable(slug: string): Promise<string> {
+    if (RESERVED_SLUGS.includes(slug)) {
+      throw new BadRequestException(`Slug "${slug}" is reserved and cannot be used`);
+    }
+
+    const existing = await this.restaurantRepository.findOne({ where: { slug } });
+    if (existing) {
+      throw new ConflictException(`Restaurant with slug ${slug} already exists`);
+    }
+
+    return slug;
+  }
+
+  /** Derives a free, non-reserved slug from `name`, disambiguating with a numeric suffix on collision. */
+  private async generateAvailableSlug(name: string): Promise<string> {
+    const base = slugify(name) || 'restaurant';
+    let candidate = base;
+    let suffix = 2;
+
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (!RESERVED_SLUGS.includes(candidate)) {
+        const existing = await this.restaurantRepository.findOne({ where: { slug: candidate } });
+        if (!existing) return candidate;
+      }
+      candidate = `${base}-${suffix}`;
+      suffix += 1;
+    }
   }
 
   async remove(id: string): Promise<void> {

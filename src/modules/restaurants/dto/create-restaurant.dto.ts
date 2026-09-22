@@ -8,16 +8,17 @@ export class CreateRestaurantDto {
   @IsString()
   name: string;
 
-  @ApiProperty({
-    description: 'Unique URL-friendly slug, used in public menu URLs (/r/{slug}/menu)',
+  @ApiPropertyOptional({
+    description:
+      'Unique URL-friendly slug, used in public menu URLs (/r/{slug}/menu). Auto-generated from the name if omitted.',
     example: 'le-bangui-chic',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Matches(/^[a-z0-9]+(-[a-z0-9]+)*$/, {
     message: 'slug must be lowercase, alphanumeric, hyphen-separated',
   })
-  slug: string;
+  slug?: string;
 
   @ApiPropertyOptional({ description: 'City', example: 'Bangui', default: 'Bangui' })
   @IsOptional()
@@ -33,6 +34,11 @@ export class CreateRestaurantDto {
   @IsOptional()
   @IsString()
   phone?: string;
+
+  @ApiPropertyOptional({ description: 'Opening hours (free text)', example: 'Lun-Dim : 08h-22h' })
+  @IsOptional()
+  @IsString()
+  hours?: string;
 
   @ApiPropertyOptional({ enum: RESTAURANT_PLAN, default: RESTAURANT_PLAN.ESSENTIEL })
   @IsOptional()

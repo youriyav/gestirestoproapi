@@ -49,6 +49,10 @@ export class Restaurant extends BaseEntity {
   @Column({ nullable: true })
   phone?: string;
 
+  // Free text, e.g. "Lun-Dim : 08h-22h" — shown on the public menu page.
+  @Column({ nullable: true })
+  hours?: string;
+
   @Column({ name: 'logo_url', nullable: true })
   logoUrl?: string;
 

@@ -108,11 +108,18 @@ import { TenantContextGuard } from '@shared/tenant-context/guards/tenant-context
         };
       },
     }),
-    // Registered but NOT wired as a global APP_GUARD — only POST
-    // /auth/login-phone opts in via @UseGuards(ThrottlerGuard), since a
-    // 4-digit access code has far less entropy than a password and needs
-    // brute-force protection the rest of the API doesn't currently have.
-    ThrottlerModule.forRoot([{ ttl: 60000, limit: 5 }]),
+    // Registered but NOT wired as a global APP_GUARD — routes opt in
+    // individually via @UseGuards(ThrottlerGuard). 'default' (5/60s): POST
+    // /auth/login-phone, since a 4-digit access code has far less entropy
+    // than a password and needs brute-force protection the rest of the API
+    // doesn't currently have. 'public' (30/60s): the unauthenticated public
+    // menu routes (/r/:slug/menu/*, /public/restaurants/:slug) — real
+    // visitors browsing a menu need more headroom than a login attempt, but
+    // still bounded against scraping.
+    ThrottlerModule.forRoot([
+      { name: 'default', ttl: 60000, limit: 5 },
+      { name: 'public', ttl: 60000, limit: 30 },
+    ]),
     TenantContextModule,
     // Modules
     AuditLogsModule,
