@@ -27,8 +27,20 @@ async function bootstrap() {
     ? corsOrigins.split(',').map((origin) => origin.trim())
     : ['http://localhost:4200'];
 
+  // Autorise en plus tout sous-domaine de gestirestopro.com (pages menu publiques par slug)
+  const wildcardPattern = /^https:\/\/[a-z0-9-]+\.gestirestopro\.com$/;
+
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      // Requêtes sans en-tête Origin (curl, Postman, appels serveur-à-serveur, certains clients Flutter)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin) || wildcardPattern.test(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`Origin non autorisée par CORS : ${origin}`), false);
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
